@@ -2,3 +2,11 @@
 *.pyc
 __pycache__
 *.npz
+*bag_to_png.py
+*camera.txt
+*dense.ply
+*out*
+*.pp
+*data/
+*data2/
+*.vscode/

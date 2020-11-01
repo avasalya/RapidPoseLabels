@@ -7,7 +7,7 @@ import transforms3d.affines as tfa
 from utils.sparse_model import SparseModel
 
 class Annotations:
-    def __init__(self, dataset_dir_path, sparse_model_path, dense_model_path, scene_meta_path, visualize=False):
+    def __init__(self, dataset_dir_path, sparse_model_path, dense_model_path, scene_meta_path, visualize=False, drawCuboid=False):
         """
         Constructor for Annotations class.
         Input arguments:
@@ -16,10 +16,12 @@ class Annotations:
         dense_model_path   - path to dense model (*.ply)
         scene_meta_path    - path to scenes' meta info (*.npz)
         visualize          - set 'True' to visualize
+        drawCuboid         - set 'True' to visualize 3D cuboid
         """
         self.dataset_path = dataset_dir_path
         self.input_array  = np.load(scene_meta_path)
         self.visualize    = visualize
+        self.drawCuboid   = drawCuboid
         #read sparse model from input array
         sparse_model = SparseModel().reader(sparse_model_path)
         #read dense model from .PLY file
@@ -42,7 +44,7 @@ class Annotations:
 
         #paths to each of the scene dirs inside root dir
         self.list_of_scene_dirs = [d for d in os.listdir(self.dataset_path)
-                                   if os.path.isdir(os.path.join(self.dataset_path, d))]
+                                    if os.path.isdir(os.path.join(self.dataset_path, d))]
         self.list_of_scene_dirs.sort()
         self.list_of_scene_dirs = self.list_of_scene_dirs[:self.num_scenes]
         print("List of scenes: ", self.list_of_scene_dirs)
@@ -63,7 +65,73 @@ class Annotations:
         #these are the relative scene transformations
         self.scene_tfs = []
 
-    def visualize_sample(self, sample):
+    def draw_axis(self, img, R, t, K):
+
+        # How+to+draw+3D+Coordinate+Axes+with+OpenCV+for+face+pose+estimation%3f
+        rotV, _ = cv2.Rodrigues(R)
+        points = np.float32([[.1, 0, 0], [0, .1, 0], [0, 0, .1], [0, 0, 0]]).reshape(-1, 3)
+        axisPoints, _ = cv2.projectPoints(points, rotV, t, K, (0, 0, 0, 0))
+        img = cv2.line(img, tuple(axisPoints[3].ravel()), tuple(axisPoints[0].ravel()), (255,0,0), 3)
+        img = cv2.line(img, tuple(axisPoints[3].ravel()), tuple(axisPoints[1].ravel()), (0,255,0), 3)
+        img = cv2.line(img, tuple(axisPoints[3].ravel()), tuple(axisPoints[2].ravel()), (0,0,255), 3)
+        return img
+
+    def draw_cube(self, img, edge, cam_t, color, lineWidth):
+
+        edge = edge *0.0001
+        edges  = np.array([
+                [-edge,-edge, -edge], #1
+                [-edge,-edge,  edge], #2
+                [edge, -edge,  edge], #3
+                [edge, -edge, -edge], #4
+                [-edge, edge, -edge], #5
+                [-edge, edge,  edge], #6
+                [edge,  edge,  edge], #7
+                [edge,  edge, -edge], #8
+                ])
+
+        cam_fx = self.cam_mat[0,0]
+        cam_fy = self.cam_mat[1,1]
+        cam_cx = self.cam_mat[0,2]
+        cam_cy = self.cam_mat[1,2]
+
+        projPts = np.dot(edges, cam_t[:3, :3]) + cam_t[:3, 3]
+
+        p1 = (int((projPts[0][0]/projPts[0][2])*cam_fx + cam_cx),
+                int((projPts[0][1]/projPts[0][2])*cam_fy + cam_cy))
+        p2 = (int((projPts[1][0]/projPts[1][2])*cam_fx + cam_cx),
+                int((projPts[1][1]/projPts[1][2])*cam_fy + cam_cy))
+        p3 = (int((projPts[2][0]/projPts[2][2])*cam_fx + cam_cx),
+                int((projPts[2][1]/projPts[2][2])*cam_fy + cam_cy))
+        p4 = (int((projPts[3][0]/projPts[3][2])*cam_fx + cam_cx),
+                int((projPts[3][1]/projPts[3][2])*cam_fy + cam_cy))
+        p5 = (int((projPts[4][0]/projPts[4][2])*cam_fx + cam_cx),
+                int((projPts[4][1]/projPts[4][2])*cam_fy + cam_cy))
+        p6 = (int((projPts[5][0]/projPts[5][2])*cam_fx + cam_cx),
+                int((projPts[5][1]/projPts[5][2])*cam_fy + cam_cy))
+        p7 = (int((projPts[6][0]/projPts[6][2])*cam_fx + cam_cx),
+                int((projPts[6][1]/projPts[6][2])*cam_fy + cam_cy))
+        p8 = (int((projPts[7][0]/projPts[7][2])*cam_fx + cam_cx),
+                int((projPts[7][1]/projPts[7][2])*cam_fy + cam_cy))
+
+        cv2.line(img, p1, p2, (255,255,255), lineWidth)
+        cv2.line(img, p1, p4, (255,255,255), lineWidth)
+        cv2.line(img, p2, p3, (255,255,255), lineWidth)
+        cv2.line(img, p3, p4, (255,255,255), lineWidth)
+        cv2.line(img, p2, p4, (255,255,255), lineWidth)
+        cv2.line(img, p1, p3, (255,255,255), lineWidth)
+        cv2.line(img, p5, p6, color, lineWidth)
+        cv2.line(img, p5, p8, color, lineWidth)
+        cv2.line(img, p7, p8, color, lineWidth)
+        cv2.line(img, p6, p7, color, lineWidth)
+        cv2.line(img, p1, p5, color, lineWidth)
+        cv2.line(img, p2, p6, color, lineWidth)
+        cv2.line(img, p3, p7, color, lineWidth)
+        cv2.line(img, p4, p8, color, lineWidth)
+
+        self.draw_axis(img, cam_t[:3, :3], cam_t[:3, 3], self.cam_mat)
+
+    def visualize_sample(self, cam_t, sample):
         """
         Visualize using opencv draw functions if self.visualize is set True.
         Input arguments:
@@ -82,15 +150,17 @@ class Annotations:
         #draw convex hull
         contours, hierarchy = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         cv2.drawContours(input_img, contours, 0, (0,255,0), -1)
-        #draw bounding-box
+        #draw bounding-box 3D cube & axis on the object
         try:
             x,y,w,h = cv2.boundingRect(contours[0])
             cv2.rectangle(input_img, (x,y), (x+w,y+h), (0,255,0), 2)
+            if self.drawCuboid:
+                self.draw_cube(input_img, max(x+w,y+h), cam_t, (0, 0, 0), 2)
         except Exception as e:
             print("Unexpected error:", e)
             pass
         cv2.imshow('window', input_img)
-        cv2.waitKey(10)
+        cv2.waitKey(100)
         return
 
     def project_points(self, input_points, input_pose):
@@ -179,7 +249,7 @@ class Annotations:
 
                 #visualize if required
                 if self.visualize:
-                    self.visualize_sample((input_rgb_image.copy(), label))
+                    self.visualize_sample(np.dot(np.linalg.inv(cam_t), sce_t), (input_rgb_image.copy(), label))
 
             print("Created {} labeled samples from dataset {} (with {} raw samples).".format(len(zipped_list), data_dir_idx, len(img_name_list)))
         return samples

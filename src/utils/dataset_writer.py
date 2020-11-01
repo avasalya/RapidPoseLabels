@@ -37,7 +37,7 @@ class DatasetWriter:
         #write bounding box for yolo
         bboxfile = open(os.path.join(self.output_dir, 'bboxes', 'frame_' + repr(index).zfill(5) + '.txt'), 'w')
         bboxfile.write('0\t' + repr(cen_label[0]/width) + '\t' + repr(cen_label[1]/height) + '\t' +
-                       repr(sca_label*200/width) + '\t' + repr(sca_label*200/height) + '\n')
+                        repr(sca_label*200/width) + '\t' + repr(sca_label*200/height) + '\n')
         bboxfile.close()
         #write center to center/center_0####.txt
         centerfile = os.path.join(self.output_dir, 'center', 'center_' + repr(index).zfill(5) + '.txt')
