@@ -1,7 +1,9 @@
 import os
+import sys
 import cv2
 import numpy as np
 import open3d as o3d
+import itertools
 import transforms3d.quaternions as tfq
 import transforms3d.affines as tfa
 from utils.sparse_model import SparseModel
@@ -69,7 +71,7 @@ class Annotations:
 
         # How+to+draw+3D+Coordinate+Axes+with+OpenCV+for+face+pose+estimation%3f
         rotV, _ = cv2.Rodrigues(R)
-        points = np.float32([[.1, 0, 0], [0, .1, 0], [0, 0, .1], [0, 0, 0]]).reshape(-1, 3)
+        points = np.float32([[0, .1, 0], [.1, 0, 0], [0, 0, .1], [0, 0, 0]]).reshape(-1, 3)
         axisPoints, _ = cv2.projectPoints(points, rotV, t, K, (0, 0, 0, 0))
         img = cv2.line(img, tuple(axisPoints[3].ravel()), tuple(axisPoints[0].ravel()), (255,0,0), 3)
         img = cv2.line(img, tuple(axisPoints[3].ravel()), tuple(axisPoints[1].ravel()), (0,255,0), 3)
@@ -129,7 +131,6 @@ class Annotations:
         cv2.line(img, p3, p7, color, lineWidth)
         cv2.line(img, p4, p8, color, lineWidth)
 
-        self.draw_axis(img, cam_t[:3, :3], cam_t[:3, 3], self.cam_mat)
 
     def visualize_sample(self, cam_t, sample):
         """
@@ -143,24 +144,45 @@ class Annotations:
         bbox_cn = sample[1][1]
         bbox_sd = sample[1][2]*200
         mask = sample[1][3]
+        cuboid = sample[1][4]
 
         #draw keypoints
         for point in keypts:
             cv2.circle(input_img, tuple(map(int, point)), 5, (255, 0, 0), -1)
         #draw convex hull
         contours, hierarchy = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-        cv2.drawContours(input_img, contours, 0, (0,255,0), -1)
-        #draw bounding-box 3D cube & axis on the object
+        cv2.drawContours(input_img, contours, 0, (0, 69, 255), -1)
+
+        # Draw 2D bounding-box
         try:
             x,y,w,h = cv2.boundingRect(contours[0])
-            cv2.rectangle(input_img, (x,y), (x+w,y+h), (0,255,0), 2)
-            if self.drawCuboid:
-                self.draw_cube(input_img, max(x+w,y+h), cam_t, (0, 0, 0), 2)
+            cv2.rectangle(input_img, (x,y), (x+w,y+h), (0, 69, 255), 2)
         except Exception as e:
             print("Unexpected error:", e)
             pass
+        # Draw 3D bounding-box
+        line_width = 2
+        cuboid  = [tuple(map(int, point)) for point in cuboid]
+        if self.drawCuboid:
+            cv2.line(input_img, cuboid[0], cuboid[1], (255,255,255), line_width)
+            cv2.line(input_img, cuboid[0], cuboid[2], (255,255,255), line_width)
+            cv2.line(input_img, cuboid[0], cuboid[4], (255,255,255), line_width)
+            cv2.line(input_img, cuboid[1], cuboid[3], (255,255,255), line_width)
+            cv2.line(input_img, cuboid[1], cuboid[5], (255,255,255), line_width)
+            cv2.line(input_img, cuboid[2], cuboid[3], (255,255,255), line_width)
+            cv2.line(input_img, cuboid[2], cuboid[6], (255,255,255), line_width)
+            cv2.line(input_img, cuboid[3], cuboid[7], (255,255,255), line_width)
+            cv2.line(input_img, cuboid[4], cuboid[5], (255,255,255), line_width)
+            cv2.line(input_img, cuboid[4], cuboid[6], (255,255,255), line_width)
+            cv2.line(input_img, cuboid[5], cuboid[7], (255,255,255), line_width)
+            cv2.line(input_img, cuboid[6], cuboid[7], (255,255,255), line_width)
+
+            self.draw_axis(input_img, cam_t[:3, :3], cam_t[:3, 3], self.cam_mat)
+
         cv2.imshow('window', input_img)
-        cv2.waitKey(100)
+        key = cv2.waitKey(50) & 0xFF
+        if key == 27:
+            sys.exit(1)
         return
 
     def project_points(self, input_points, input_pose):
@@ -190,6 +212,15 @@ class Annotations:
         contours, hierarchy = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         cv2.drawContours(mask, contours, 0, 255, -1)
 
+        #project the 3D bounding-box to 2D image plane
+        min_point = np.min(input_points[1], axis=0)
+        max_point = np.max(input_points[1], axis=0)
+        min_max = [[a,b] for a,b in zip(min_point, max_point)] #[[x_min, x_max], [y_min, y_max], [z_min, z_max]]
+        vertices = itertools.product(*min_max)
+        vertices = np.asarray(list(vertices))
+        cuboid = cv2.projectPoints(vertices, rvec, tvec, self.cam_mat, None)[0]
+        cuboid = np.transpose(np.asarray(cuboid), (1,0,2))[0]
+
         #estimate a square box using mean and min-max in x- and y-
         bbox_cn = keypts.mean(0)
         xmin, ymin = keypts.min(0)
@@ -200,7 +231,7 @@ class Annotations:
         if ymax>=(self.height-1): ymax=(self.height-1)
         bbox_cn = ((xmax+xmin)/2, (ymax+ymin)/2)
         bbox_sd = max((xmax-xmin), (ymax-ymin))*self.bbox_scale
-        return keypts, bbox_cn, bbox_sd/200.0, mask
+        return keypts, bbox_cn, bbox_sd/200.0, mask, cuboid
 
     def process_input(self):
         """
