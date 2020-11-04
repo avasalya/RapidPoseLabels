@@ -24,6 +24,7 @@ class Annotations:
         self.input_array  = np.load(scene_meta_path)
         self.visualize    = visualize
         self.drawCuboid   = drawCuboid
+
         #read sparse model from input array
         sparse_model = SparseModel().reader(sparse_model_path)
         #read dense model from .PLY file
@@ -78,60 +79,6 @@ class Annotations:
         img = cv2.line(img, tuple(axisPoints[3].ravel()), tuple(axisPoints[2].ravel()), (0,0,255), 3)
         return img
 
-    def draw_cube(self, img, edge, cam_t, color, lineWidth):
-
-        edge = edge *0.0001
-        edges  = np.array([
-                [-edge,-edge, -edge], #1
-                [-edge,-edge,  edge], #2
-                [edge, -edge,  edge], #3
-                [edge, -edge, -edge], #4
-                [-edge, edge, -edge], #5
-                [-edge, edge,  edge], #6
-                [edge,  edge,  edge], #7
-                [edge,  edge, -edge], #8
-                ])
-
-        cam_fx = self.cam_mat[0,0]
-        cam_fy = self.cam_mat[1,1]
-        cam_cx = self.cam_mat[0,2]
-        cam_cy = self.cam_mat[1,2]
-
-        projPts = np.dot(edges, cam_t[:3, :3]) + cam_t[:3, 3]
-
-        p1 = (int((projPts[0][0]/projPts[0][2])*cam_fx + cam_cx),
-                int((projPts[0][1]/projPts[0][2])*cam_fy + cam_cy))
-        p2 = (int((projPts[1][0]/projPts[1][2])*cam_fx + cam_cx),
-                int((projPts[1][1]/projPts[1][2])*cam_fy + cam_cy))
-        p3 = (int((projPts[2][0]/projPts[2][2])*cam_fx + cam_cx),
-                int((projPts[2][1]/projPts[2][2])*cam_fy + cam_cy))
-        p4 = (int((projPts[3][0]/projPts[3][2])*cam_fx + cam_cx),
-                int((projPts[3][1]/projPts[3][2])*cam_fy + cam_cy))
-        p5 = (int((projPts[4][0]/projPts[4][2])*cam_fx + cam_cx),
-                int((projPts[4][1]/projPts[4][2])*cam_fy + cam_cy))
-        p6 = (int((projPts[5][0]/projPts[5][2])*cam_fx + cam_cx),
-                int((projPts[5][1]/projPts[5][2])*cam_fy + cam_cy))
-        p7 = (int((projPts[6][0]/projPts[6][2])*cam_fx + cam_cx),
-                int((projPts[6][1]/projPts[6][2])*cam_fy + cam_cy))
-        p8 = (int((projPts[7][0]/projPts[7][2])*cam_fx + cam_cx),
-                int((projPts[7][1]/projPts[7][2])*cam_fy + cam_cy))
-
-        cv2.line(img, p1, p2, (255,255,255), lineWidth)
-        cv2.line(img, p1, p4, (255,255,255), lineWidth)
-        cv2.line(img, p2, p3, (255,255,255), lineWidth)
-        cv2.line(img, p3, p4, (255,255,255), lineWidth)
-        cv2.line(img, p2, p4, (255,255,255), lineWidth)
-        cv2.line(img, p1, p3, (255,255,255), lineWidth)
-        cv2.line(img, p5, p6, color, lineWidth)
-        cv2.line(img, p5, p8, color, lineWidth)
-        cv2.line(img, p7, p8, color, lineWidth)
-        cv2.line(img, p6, p7, color, lineWidth)
-        cv2.line(img, p1, p5, color, lineWidth)
-        cv2.line(img, p2, p6, color, lineWidth)
-        cv2.line(img, p3, p7, color, lineWidth)
-        cv2.line(img, p4, p8, color, lineWidth)
-
-
     def visualize_sample(self, cam_t, sample):
         """
         Visualize using opencv draw functions if self.visualize is set True.
@@ -144,14 +91,22 @@ class Annotations:
         bbox_cn = sample[1][1]
         bbox_sd = sample[1][2]*200
         mask = sample[1][3]
-        cuboid = sample[1][4]
+        cenCuboid = sample[1][4]
+        cuboid = sample[1][5]
+        depth_img = sample[2]
+        # cv2.imshow('depth', depth_img)
 
-        #draw keypoints
-        for point in keypts:
-            cv2.circle(input_img, tuple(map(int, point)), 5, (255, 0, 0), -1)
         #draw convex hull
         contours, hierarchy = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         cv2.drawContours(input_img, contours, 0, (0, 69, 255), -1)
+
+        #draw keypoints
+        for point in keypts:
+            cv2.circle(input_img, tuple(map(int, point)), 5, (0, 255, 255), -1)
+
+        #draw cuboid center
+        for center in cenCuboid:
+            cv2.circle(input_img, tuple(map(int, center)), 10, (0, 0, 0), -1)
 
         # Draw 2D bounding-box
         try:
@@ -160,6 +115,7 @@ class Annotations:
         except Exception as e:
             print("Unexpected error:", e)
             pass
+
         # Draw 3D bounding-box
         line_width = 2
         cuboid  = [tuple(map(int, point)) for point in cuboid]
@@ -180,9 +136,10 @@ class Annotations:
             self.draw_axis(input_img, cam_t[:3, :3], cam_t[:3, 3], self.cam_mat)
 
         cv2.imshow('window', input_img)
-        key = cv2.waitKey(50) & 0xFF
+        key = cv2.waitKey(1) & 0xFF
         if key == 27:
             sys.exit(1)
+
         return
 
     def project_points(self, input_points, input_pose):
@@ -211,15 +168,27 @@ class Annotations:
         mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
         contours, hierarchy = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         cv2.drawContours(mask, contours, 0, 255, -1)
+        x,y,w,h = cv2.boundingRect(contours[0])
+        bbox = []
+        bbox.append(x)
+        bbox.append(y)
+        bbox.append(w)
+        bbox.append(h)
 
         #project the 3D bounding-box to 2D image plane
         min_point = np.min(input_points[1], axis=0)
         max_point = np.max(input_points[1], axis=0)
         min_max = [[a,b] for a,b in zip(min_point, max_point)] #[[x_min, x_max], [y_min, y_max], [z_min, z_max]]
+
         vertices = itertools.product(*min_max)
         vertices = np.asarray(list(vertices))
         cuboid = cv2.projectPoints(vertices, rvec, tvec, self.cam_mat, None)[0]
         cuboid = np.transpose(np.asarray(cuboid), (1,0,2))[0]
+
+        cuboidCenter = (min_point + max_point)/2
+        cuboidCenter = cv2.projectPoints(cuboidCenter, rvec, tvec, self.cam_mat, None)[0]
+        cuboidCenter = np.transpose(np.asarray(cuboidCenter), (1,0,2))[0]
+        # print('proj cuboidCenter', np.asarray(list(cuboidCenter)))
 
         #estimate a square box using mean and min-max in x- and y-
         bbox_cn = keypts.mean(0)
@@ -231,7 +200,8 @@ class Annotations:
         if ymax>=(self.height-1): ymax=(self.height-1)
         bbox_cn = ((xmax+xmin)/2, (ymax+ymin)/2)
         bbox_sd = max((xmax-xmin), (ymax-ymin))*self.bbox_scale
-        return keypts, bbox_cn, bbox_sd/200.0, mask, cuboid
+
+        return keypts, bbox_cn, bbox_sd/200.0, mask, cuboidCenter, cuboid, input_pose, bbox
 
     def process_input(self):
         """
@@ -270,17 +240,25 @@ class Annotations:
                 #read the RGB images using opencv
                 img_name = img_name.split()
                 rgb_im_path = os.path.join(self.dataset_path, cur_scene_dir, img_name[3])
+                depth_im_path = os.path.join(self.dataset_path, cur_scene_dir, img_name[1])
+
                 input_rgb_image = cv2.resize(cv2.imread(rgb_im_path), (self.width, self.height))
+                input_depth_image = cv2.resize(cv2.imread(depth_im_path), (self.width, self.height))
+                # cv2.imshow("depth image", input_depth_image)
+
                 #compose 4x4 camera pose matrix
                 cam_t = tfa.compose(np.asarray(cam_pose[:3]), tfq.quat2mat(np.asarray([cam_pose[-1]] + cam_pose[3:-1])), np.ones(3))
+
                 #get 2D positions of keypoints, centers and scale of bounding box
                 label = self.project_points(self.object_model, np.dot(np.linalg.inv(cam_t), sce_t))
-                #label = self.project_points(self.object_model, np.dot(np.linalg.inv(sce_t), cam_t))
-                samples.append((input_rgb_image, label))
+
+                # append all necessary data into one list
+                samples.append((input_rgb_image, label, input_depth_image))
 
                 #visualize if required
                 if self.visualize:
-                    self.visualize_sample(np.dot(np.linalg.inv(cam_t), sce_t), (input_rgb_image.copy(), label))
+                    self.visualize_sample(np.dot(np.linalg.inv(cam_t), sce_t), (input_rgb_image.copy(), label, input_depth_image.copy()))
 
             print("Created {} labeled samples from dataset {} (with {} raw samples).".format(len(zipped_list), data_dir_idx, len(img_name_list)))
+
         return samples
