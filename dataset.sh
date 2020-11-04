@@ -111,14 +111,14 @@ echo " "
 
 latest_outDir=$(ls -td */ | head -1)
 echo "Copying dense.ply and sparse_model.pp to $HOME/$rpl/$latest_outDir"
-cp sparse_model2.pp $HOME/$rpl/$latest_outDir
+cp sparse_model.pp $HOME/$rpl/$latest_outDir
 cp dense-tex.ply $HOME/$rpl/$latest_outDir
 cp dense-tex.jpg $HOME/$rpl/$latest_outDir
 echo " "
 
 
 echo "Finally generate dataset and labels"
-python3  $HOME/$rpl/src/generate.py  --dataset $dataDir  --sparse $latest_outDir/sparse_model2.pp --dense $latest_outDir/dense-tex.ply  --meta $latest_outDir/saved_meta_data.npz --output $latest_outDir/  --visualize --drawCuboid
+python3  $HOME/$rpl/src/generate.py  --dataset $dataDir  --sparse $latest_outDir/sparse_model.pp --dense $latest_outDir/dense-tex.ply  --meta $latest_outDir/saved_meta_data.npz --output $latest_outDir/  --visualize --drawCuboid
 echo " "
 
 
