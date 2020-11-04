@@ -44,7 +44,7 @@ if __name__ == '__main__':
     print("Total number of samples generated: {}".format(len(samples)))
 
 
-    print('creating train and test sets with random order 80-20%')
+    print('\ncreating train and test sets with random order 80-20%')
     trainTxt = os.path.join(opt.output, 'train.txt')
     testTxt = os.path.join(opt.output, 'test.txt')
 

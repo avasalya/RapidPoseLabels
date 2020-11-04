@@ -44,6 +44,8 @@ class DatasetWriter:
         bbox        = sample[1][7]
         depth_image = sample[2]
 
+        # print('writer depth_image shape', depth_image.shape)
+
         ymlLabel = []
         txtLabel = []
 

@@ -1,5 +1,9 @@
 #!/bin/bash
 
+# to record rosbag using realsense D435
+# rosbag record /camera/aligned_depth_to_color/image_raw /camera/color/image_raw --duration=1m
+
+
 # path to scene(s) data directory
 rpl="RapidPoseLabels"
 dataDir="data/onigiri"
@@ -99,20 +103,22 @@ echo " "
 
 
 cd $HOME/$rpl/
-echo "Run RPL with 7 keypoints to create model or use existing model and create .npz file"
-python3 $HOME/$rpl/src/main.py --dataset $HOME/$rpl/$dataDir/ --keypoints 7
+keypoints=6
+echo "Run RPL with $keypoints keypoints to create model or use existing model and create .npz file"
+python3 $HOME/$rpl/src/main.py --dataset $HOME/$rpl/$dataDir/ --keypoints $keypoints
 echo " "
 
 
 latest_outDir=$(ls -td */ | head -1)
 echo "Copying dense.ply and sparse_model.pp to $HOME/$rpl/$latest_outDir"
-cp sparse_model.pp $HOME/$rpl/$latest_outDir
-cp dense.ply $HOME/$rpl/$latest_outDir
+cp sparse_model2.pp $HOME/$rpl/$latest_outDir
+cp dense-tex.ply $HOME/$rpl/$latest_outDir
+cp dense-tex.jpg $HOME/$rpl/$latest_outDir
 echo " "
 
 
 echo "Finally generate dataset and labels"
-python3  $HOME/$rpl/src/generate.py  --dataset $dataDir  --sparse $latest_outDir/sparse_model.pp --dense $latest_outDir/dense.ply  --meta $latest_outDir/saved_meta_data.npz --output $latest_outDir/  --visualize --drawCuboid
+python3  $HOME/$rpl/src/generate.py  --dataset $dataDir  --sparse $latest_outDir/sparse_model2.pp --dense $latest_outDir/dense-tex.ply  --meta $latest_outDir/saved_meta_data.npz --output $latest_outDir/  --visualize --drawCuboid
 echo " "
 
 

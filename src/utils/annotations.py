@@ -136,7 +136,7 @@ class Annotations:
             self.draw_axis(input_img, cam_t[:3, :3], cam_t[:3, 3], self.cam_mat)
 
         cv2.imshow('window', input_img)
-        key = cv2.waitKey(1) & 0xFF
+        key = cv2.waitKey(500) & 0xFF
         if key == 27:
             sys.exit(1)
 
@@ -243,7 +243,8 @@ class Annotations:
                 depth_im_path = os.path.join(self.dataset_path, cur_scene_dir, img_name[1])
 
                 input_rgb_image = cv2.resize(cv2.imread(rgb_im_path), (self.width, self.height))
-                input_depth_image = cv2.resize(cv2.imread(depth_im_path), (self.width, self.height))
+                input_depth_image = cv2.resize(cv2.imread(depth_im_path, cv2.IMREAD_ANYDEPTH), (self.width, self.height))
+                # print('depth image shape', input_depth_image.shape)
                 # cv2.imshow("depth image", input_depth_image)
 
                 #compose 4x4 camera pose matrix
@@ -253,6 +254,7 @@ class Annotations:
                 label = self.project_points(self.object_model, np.dot(np.linalg.inv(cam_t), sce_t))
 
                 # append all necessary data into one list
+                # if data_dir_idx	not in [5, 6]:
                 samples.append((input_rgb_image, label, input_depth_image))
 
                 #visualize if required
