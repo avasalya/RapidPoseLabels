@@ -61,7 +61,7 @@ class Annotations:
         #bounding-box needs to scaled up to avoid excessive cropping
         self.bbox_scale = 1.5
         #define a ratio of labeled samples to produce
-        self.ratio = 10
+        self.ratio = 1 #10
 
         #this is the object model
         self.object_model = [sparse_model, np.asarray(dense_model.points)]
@@ -136,7 +136,7 @@ class Annotations:
             self.draw_axis(input_img, cam_t[:3, :3], cam_t[:3, 3], self.cam_mat)
 
         cv2.imshow('window', input_img)
-        key = cv2.waitKey(500) & 0xFF
+        key = cv2.waitKey(10) & 0xFF
         if key == 27:
             sys.exit(1)
 

@@ -21,6 +21,7 @@ echo "---Also following files exists in your $HOME/$rpl directory camera.txt, de
 while true; do
     echo " "
     read -p "Do you wish to continue (y/n)?" yn
+    read -p "Do you want to overwrite previous dataset in $HOME$rpl/data/txonigiri ?" yn
     echo " "
     case $yn in
         [Yy]* )
@@ -103,7 +104,7 @@ echo " "
 
 
 cd $HOME/$rpl/
-keypoints=6
+keypoints=5
 echo "Run RPL with $keypoints keypoints to create model or use existing model and create .npz file"
 python3 $HOME/$rpl/src/main.py --dataset $HOME/$rpl/$dataDir/ --keypoints $keypoints
 echo " "
