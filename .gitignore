@@ -5,7 +5,7 @@ __pycache__
 # *bag_to_png.py
 # *camera.txt
 # *dense.ply
-*.pp
+# *.pp
 *out*
 *data*
 *.vscode/
