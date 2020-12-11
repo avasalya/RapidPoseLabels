@@ -2,9 +2,9 @@
 *.pyc
 __pycache__
 *.npz
-*bag_to_png.py
-*camera.txt
-*dense.ply
+# *bag_to_png.py
+# *camera.txt
+# *dense.ply
 *.pp
 *out*
 *data*
