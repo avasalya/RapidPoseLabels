@@ -1,8 +1,13 @@
 #!/bin/bash
+# set -e
+# Any subsequent(*) commands which fail will cause the shell script to exit immediately
 
 # to record rosbag using realsense D435
 # rosbag record /camera/aligned_depth_to_color/image_raw /camera/color/image_raw --duration=1m
 
+# to run this file
+# ./dataset.sh or
+# bash -e dataset.sh
 
 # path to scene(s) data directory
 rpl="RapidPoseLabels"
@@ -15,13 +20,13 @@ echo "---pngtoklg/, assumes you have complied it correctly and 'pngtoklg' file e
 echo "---ElasticFusion/, compiled and build correctly"
 echo "---that you have created conda environment named 'rpl' using conda env create -f environment.yml, if not please do so right now.."
 echo " "
-echo "---Also following files exists in your $HOME/$rpl directory camera.txt, dense.ply, sparse_model.pp (meshlab file), bag_to_png.py"
+echo "---Also following files exists in your $HOME/$rpl directory 'camera.txt', dense.ply, sparse_model.pp (meshlab file), bag_to_png.py"
 
 
 while true; do
     echo " "
-    read -p "Do you wish to continue (y/n)?" yn
-    read -p "Do you want to overwrite previous dataset in $HOME$rpl/data/txonigiri ?" yn
+    read -p "Do you wish to continue [Y/n]?" yn
+    read -p "Do you want to overwrite previous dataset in $HOME$rpl/data/txonigiri [Y/n]?" yn
     echo " "
     case $yn in
         [Yy]* )
@@ -123,4 +128,4 @@ python3  $HOME/$rpl/src/generate.py  --dataset $dataDir  --sparse $latest_outDir
 echo " "
 
 
-echo "If all above steps worked without any error, that means you have successfully generated labels at $HOME/$rpl/$latest_outDir"
+echo "If all above steps worked without any 'error', that means you have successfully generated labels at $HOME/$rpl/$latest_outDir"

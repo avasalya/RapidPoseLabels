@@ -61,7 +61,7 @@ class Annotations:
         #bounding-box needs to scaled up to avoid excessive cropping
         self.bbox_scale = 1.5
         #define a ratio of labeled samples to produce
-        self.ratio = 1 #10
+        self.ratio = 10
 
         #this is the object model
         self.object_model = [sparse_model, np.asarray(dense_model.points)]
