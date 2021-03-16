@@ -35,6 +35,15 @@ if __name__ == '__main__':
 
     indices = []
 
+    #erase old files
+    trainTxt = os.path.join(opt.output, 'train.txt')
+    testTxt = os.path.join(opt.output, 'test.txt')
+    yoloData = os.path.join(opt.output, 'yoloData.txt')
+
+    open(trainTxt, 'w').close()
+    open(testTxt, 'w').close()
+    open(yoloData, 'w').close()
+
     #write each sample to disk
     label_writer = DatasetWriter(opt.output)
     for counter, item in enumerate(samples):
@@ -45,13 +54,6 @@ if __name__ == '__main__':
 
 
     print('\ncreating train and test sets with random order 80-20%')
-    trainTxt = os.path.join(opt.output, 'train.txt')
-    testTxt = os.path.join(opt.output, 'test.txt')
-
-    #erase old files
-    open(trainTxt, 'w').close()
-    open(testTxt, 'w').close()
-
     #generate random samples
     N = len(samples)
     randomList = rand.sample(range(0, N), N)

@@ -42,12 +42,14 @@ class DatasetWriter:
         proj_cuboid = sample[1][5]
         pred_pose   = sample[1][6]
         bbox        = sample[1][7]
+        yoloBox     = sample[1][8]
         depth_image = sample[2]
 
         # print('writer depth_image shape', depth_image.shape)
 
         ymlLabel = []
         txtLabel = []
+        yolotxtLabel = []
 
         height = rgb_image.shape[0] #480
         width  = rgb_image.shape[1] #640
@@ -116,6 +118,20 @@ class DatasetWriter:
             if label < len(txtLabel) -1:
                 gttxt.write(' ')
         gttxt.close()
+
+        """ yolov4 .txt """
+        image_path = repr(index).zfill(4)
+        yolotxtLabel.append(image_path)
+        for e in yoloBox:
+            yolotxtLabel.append(e)
+
+        yolotxt  = open(os.path.join(self.output_dir, 'yoloData.txt'), 'a')
+        for label in range(len(yolotxtLabel)):
+            yolotxt.write(str(yolotxtLabel[label]))
+            if label < len(yolotxtLabel) -1:
+                yolotxt.write(' ')
+        yolotxt.write('\n')
+        yolotxt.close()
 
         return
 

@@ -61,7 +61,7 @@ class Annotations:
         #bounding-box needs to scaled up to avoid excessive cropping
         self.bbox_scale = 1.5
         #define a ratio of labeled samples to produce
-        self.ratio = 10
+        self.ratio = 10 # only XX% data would be removed default:10
 
         #this is the object model
         self.object_model = [sparse_model, np.asarray(dense_model.points)]
@@ -169,11 +169,19 @@ class Annotations:
         contours, hierarchy = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         cv2.drawContours(mask, contours, 0, 255, -1)
         x,y,w,h = cv2.boundingRect(contours[0])
+
         bbox = []
         bbox.append(x)
         bbox.append(y)
         bbox.append(w)
         bbox.append(h)
+
+        yoloBox = []
+        yoloBox.append(str(x)+',')
+        yoloBox.append(str(y)+',')
+        yoloBox.append(str(x+w)+',')
+        yoloBox.append(str(y+h)+',')
+        yoloBox.append(0)
 
         #project the 3D bounding-box to 2D image plane
         min_point = np.min(input_points[1], axis=0)
@@ -201,7 +209,7 @@ class Annotations:
         bbox_cn = ((xmax+xmin)/2, (ymax+ymin)/2)
         bbox_sd = max((xmax-xmin), (ymax-ymin))*self.bbox_scale
 
-        return keypts, bbox_cn, bbox_sd/200.0, mask, cuboidCenter, cuboid, input_pose, bbox
+        return keypts, bbox_cn, bbox_sd/200.0, mask, cuboidCenter, cuboid, input_pose, bbox, yoloBox
 
     def process_input(self):
         """
