@@ -11,7 +11,8 @@
 
 # path to scene(s) data directory
 rpl="RapidPoseLabels"
-dataDir="data/onigiri"
+dataDir="data/pet"
+obj="cupnoodle"
 
 
 echo "---this script assumes you have fullfilled all the requirements and following folders exists in your $HOME directory"
@@ -20,13 +21,13 @@ echo "---pngtoklg/, assumes you have complied it correctly and 'pngtoklg' file e
 echo "---ElasticFusion/, compiled and build correctly"
 echo "---that you have created conda environment named 'rpl' using conda env create -f environment.yml, if not please do so right now.."
 echo " "
-echo "---Also following files exists in your $HOME/$rpl directory 'camera.txt', dense.ply, sparse_model.pp (meshlab file), bag_to_png.py"
+echo "---Also following files exists in your $HOME/$rpl directory 'camera.txt', $obj.ply, $obj.pp (meshlab file), bag_to_png.py"
 
 
 while true; do
     echo " "
     read -p "Do you wish to continue [Y/n]?" yn
-    read -p "Do you want to overwrite previous dataset in $HOME$rpl/data/txonigiri [Y/n]?" yn
+    read -p "Do you want to overwrite previous dataset in $HOME$rpl/data/pet [Y/n]?" yn
     echo " "
     case $yn in
         [Yy]* )
@@ -116,15 +117,15 @@ echo " "
 
 
 latest_outDir=$(ls -td */ | head -1)
-echo "Copying dense.ply and sparse_model.pp to $HOME/$rpl/$latest_outDir"
-cp sparse_model.pp $HOME/$rpl/$latest_outDir
-cp dense-tex.ply $HOME/$rpl/$latest_outDir
-cp dense-tex.jpg $HOME/$rpl/$latest_outDir
+echo "Copying dense.ply and $obj.pp to $HOME/$rpl/$latest_outDir"
+cp $obj.pp $HOME/$rpl/$latest_outDir
+cp $obj.ply $HOME/$rpl/$latest_outDir
+# cp $obj.jpg $HOME/$rpl/$latest_outDir
 echo " "
 
 
 echo "Finally generate dataset and labels"
-python3  $HOME/$rpl/src/generate.py  --dataset $dataDir  --sparse $latest_outDir/sparse_model.pp --dense $latest_outDir/dense-tex.ply  --meta $latest_outDir/saved_meta_data.npz --output $latest_outDir/  --visualize --drawCuboid
+python3  $HOME/$rpl/src/generate.py  --dataset $dataDir  --sparse $latest_outDir/$obj.pp --dense $latest_outDir/$obj.ply  --meta $latest_outDir/saved_meta_data.npz --output $latest_outDir/  --visualize --drawCuboid
 echo " "
 
 
